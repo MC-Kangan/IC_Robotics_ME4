@@ -210,12 +210,18 @@ def symprint(symbol, sup, sub, dot=False):
     display(symbols(info))
 
 
+def matprint(matrix, alias=None):
+    if alias:
+        display(matrix.subs(alias))
+    else:
+        display(matrix)
+
 def Position_finder(sym_matrix):
     # exclude the last row and display the last column
     return sym_matrix[:-1, -1]
 
 
-def revolute_joint(frame, theta_dot, transform_low_high, omega, v, Display=True, Display_all_details=False):
+def revolute_joint(frame, theta_dot, transform_low_high, omega, v, alias, Display=True, Display_all_details=False):
     # Transpose and extract the 3x3 matrix
     rotation_high_low = transform_low_high.T[:3, :3]
     P = transform_low_high[:3, -1]
@@ -228,28 +234,28 @@ def revolute_joint(frame, theta_dot, transform_low_high, omega, v, Display=True,
 
     if Display_all_details:
         print('R')
-        display(rotation_high_low)
+        matprint(rotation_high_low, alias)
         print('v_prev')
-        display(v)
+        matprint(v, alias)
         print('omega_prev')
-        display(omega)
+        matprint(omega, alias)
         print('P')
-        display(P)
+        matprint(P, alias)
         print('omega x P')
-        display(omega.cross(P))
+        matprint(omega.cross(P), alias)
         print('theta_dot * k')
-        display(theta_dot * Matrix([0, 0, 1]))
+        matprint(theta_dot * Matrix([0, 0, 1]), alias)
 
     if Display:
         symprint('\Omega', frame, frame)
-        display(omega_new)
+        matprint(omega_new, alias)
         symprint('V', frame, frame)
-        display(v_new)
+        matprint(v_new, alias)
 
     return [omega_new, v_new]
 
 
-def prismatic_joint(frame, d_dot, transform_low_high, omega, v, Display=True, Display_all_details=False):
+def prismatic_joint(frame, d_dot, transform_low_high, omega, v, alias, Display=True, Display_all_details=False):
     # Transpose and extract the 3x3 matrix
     rotation_high_low = transform_low_high.T[:3, :3]
     P = transform_low_high[:3, -1]
@@ -262,56 +268,61 @@ def prismatic_joint(frame, d_dot, transform_low_high, omega, v, Display=True, Di
 
     if Display_all_details:
         print('R')
-        display(rotation_high_low)
+        matprint(rotation_high_low, alias)
         print('v_prev')
-        display(v)
+        matprint(v, alias)
         print('omega_prev')
-        display(omega)
+        matprint(omega, alias)
         print('P')
-        display(P)
+        matprint(P, alias)
         print('omega x P')
-        display(omega.cross(P))
+        matprint(omega.cross(P), alias)
         print('d_dot * k')
-        display(d_dot * Matrix([0, 0, 1]))
+        matprint(d_dot * Matrix([0, 0, 1]), alias)
 
     if Display:
         symprint('\Omega', frame, frame)
-        display(omega_new)
+        matprint(omega_new, alias)
         symprint('V', frame, frame)
-        display(v_new)
+        matprint(v_new, alias)
 
     return [omega_new, v_new]
 
 
-def Jacobian(parameters, v_ee, omega_ee, transform_low_high, Display=True, Display_all_details=False):
-    if len(parameters) == 3:
-        a, b, c = parameters
-        Jee = Matrix([[v_ee[0].diff(a), v_ee[0].diff(b), v_ee[0].diff(c)],
-                      [v_ee[1].diff(a), v_ee[1].diff(b), v_ee[1].diff(c)],
-                      [v_ee[2].diff(a), v_ee[2].diff(b), v_ee[2].diff(c)],
-                      [omega_ee[0].diff(a), omega_ee[0].diff(b), omega_ee[0].diff(c)],
-                      [omega_ee[1].diff(a), omega_ee[1].diff(b), omega_ee[1].diff(c)],
-                      [omega_ee[2].diff(a), omega_ee[2].diff(b), omega_ee[2].diff(c)]])
-        if Display_all_details:
-            display(simplify(Matrix([[transform_low_high[:3, :3], zeros(3)], [zeros(3), transform_low_high[:3, :3]]])))
-        J0 = simplify(Matrix([[transform_low_high[:3, :3], zeros(3)], [zeros(3), transform_low_high[:3, :3]]]) * Jee)
+def Jacobian(parameters, v_ee, omega_ee, transform_low_high, alias, Display=True, Display_all_details=False):
+    Jee = Matrix([[v_ee[0].diff(var) for var in parameters],
+                  [v_ee[1].diff(var) for var in parameters],
+                  [v_ee[2].diff(var) for var in parameters],
+                  [omega_ee[0].diff(var) for var in parameters],
+                  [omega_ee[1].diff(var) for var in parameters],
+                  [omega_ee[2].diff(var) for var in parameters]])
 
-    elif len(parameters) == 4:
-        a, b, c, d = parameters
-        Jee = Matrix([[v_ee[0].diff(a), v_ee[0].diff(b), v_ee[0].diff(c), v_ee[0].diff(d)],
-                      [v_ee[1].diff(a), v_ee[1].diff(b), v_ee[1].diff(c), v_ee[1].diff(d)],
-                      [v_ee[2].diff(a), v_ee[2].diff(b), v_ee[2].diff(c), v_ee[2].diff(d)],
-                      [omega_ee[0].diff(a), omega_ee[0].diff(b), omega_ee[0].diff(c), omega_ee[0].diff(d)],
-                      [omega_ee[1].diff(a), omega_ee[1].diff(b), omega_ee[1].diff(c), omega_ee[1].diff(d)],
-                      [omega_ee[2].diff(a), omega_ee[2].diff(b), omega_ee[2].diff(c), omega_ee[2].diff(d)]])
+    if Display_all_details:
+        matprint(simplify(Matrix([[transform_low_high[:3, :3], zeros(3)], [zeros(3), transform_low_high[:3, :3]]])), alias)
+    J0 = simplify(Matrix([[transform_low_high[:3, :3], zeros(3)], [zeros(3), transform_low_high[:3, :3]]]) * Jee)
 
     if Display:
         symprint('J', 'e', 'e')
-        display(Jee)
+        matprint(Jee, alias)
         symprint('J', 0, '')
-        display(J0)
+        matprint(J0, alias)
 
     return [Jee, J0]
+
+
+def velocity_COM(frame, transform_low_high, P, v, omega, alias):
+    rotation_high_low = transform_low_high.T[:3, :3]
+
+    symprint('Omega_G', frame, frame)
+    OmegaGee = simplify(rotation_high_low * omega)
+    matprint(OmegaGee, alias)
+
+    symprint('V_G', frame, frame)
+    VGee = simplify(v + omega.cross(P))
+    matprint(VGee, alias)
+
+    return OmegaGee, VGee
+
 
 if __name__ == '__main__':
     print('hello world')
