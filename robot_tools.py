@@ -324,5 +324,75 @@ def velocity_COM(frame, transform_low_high, P, v, omega, alias):
     return OmegaGee, VGee
 
 
+def image_projection(w, h, nx, ny, f, coord_universe, T0C, Display=False):
+    '''
+    w: width of retina in m
+    h: height of retina in m
+    nx: horizontal pixels number
+    ny: vertical pixels number
+    f: focal length in m
+    coord_universe: list -> Coordinate of the object / point in the universe frame
+    TOC: Sympy Matrix -> Position of camera relative to the universe
+
+    '''
+
+    [xp, yp, zp] = coord_universe
+
+    # Size of te individual pixel
+    Dw = symbols('dw')
+    Dh = symbols('dh')
+
+    # Principal point (centre of the renita)
+    U0 = symbols('u0')
+    V0 = symbols('v0')
+
+    # Focal length in m
+    F = symbols('f')
+
+    # Coordinate of the object / point in the universe frame
+    Xp = symbols('x_p')
+    Yp = symbols('y_p')
+    Zp = symbols('z_p')
+
+    # Coordinate of the object homogeneous form
+    P0 = Matrix([Xp, Yp, Zp, 1])
+
+    # Camera parameters
+    CM = Matrix([[F / Dw, 0, U0, 0],
+                 [0, F / Dh, V0, 0],
+                 [0, 0, 1, 0]])
+
+    RES = CM * T0C ** -1 * P0
+
+    # Retina coordinate homogeneous form
+    homo_retina = RES.subs({U0: nx / 2, V0: ny / 2,
+                            F: f,
+                            Dw: w / nx, Dh: h / ny,
+                            Xp: xp, Yp: yp, Zp: zp})
+
+    # Retina coordinate
+    retina = Matrix([round(homo_retina[0] / homo_retina[-1], 1),
+                     round(homo_retina[1] / homo_retina[-1], 1)])
+
+    if Display:
+        print('Camera parameters matrix')
+        display(CM.subs({F: f, Dw: w / nx, Dh: h / ny, U0: nx / 2, V0: ny / 2}))
+
+        print('Position of camera to the universe')
+        display(T0C)
+
+        print('Position of the object in the universe')
+        display(P0.subs({Xp: xp, Yp: yp, Zp: zp}))
+
+        print('Retina coordinates homogeneous')
+        display(homo_retina)
+
+        print('Retina coordinates')
+        display(retina)
+
+    # Retina coordinate
+    u, v = int(retina[0]), int(retina[1])
+    return [u, v]
+
 if __name__ == '__main__':
     print('hello world')
