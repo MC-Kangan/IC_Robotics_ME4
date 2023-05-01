@@ -37,17 +37,17 @@ def Rotation(angle, direction, rad=True):
         angle = math.radians(angle)
 
     if direction == 'x':
-        R = np.array([[1, 0, 0],
-                      [0, c(angle), -s(angle)],
-                      [0, s(angle), c(angle)]])
+        R = Matrix([[1, 0, 0],
+                    [0, cos(angle), -sin(angle)],
+                    [0, sin(angle), cos(angle)]])
     elif direction == 'y':
-        R = np.array([[c(angle), 0, s(angle)],
-                      [0, 1, 0],
-                      [-s(angle), 0, c(angle)]])
+        R = Matrix([[cos(angle), 0, sin(angle)],
+                    [0, 1, 0],
+                    [-sin(angle), 0, cos(angle)]])
     elif direction == 'z':
-        R = np.array([[c(angle), -s(angle), 0],
-                      [s(angle), c(angle), 0],
-                      [0, 0, 1]])
+        R = Matrix([[cos(angle), -sin(angle), 0],
+                    [sin(angle), cos(angle), 0],
+                    [0, 0, 1]])
     return R
 
 
@@ -58,21 +58,24 @@ def Rotation_non_pincipal_axes(angle, direction, rad=True):
         a = angle
 
     # Convert the direction to unit vector, if the direction is already unit vector, norm = 1
-    [ux, uy, uz] = direction / np.linalg.norm(direction)
+    [ux, uy, uz] = direction
 
     # Use equation 33
-    row1 = np.array(
-        [ux * ux * (1 - c(a)) + c(a), ux * uy * (1 - c(a)) - uz * s(a), ux * uz * (1 - c(a)) + uy * s(a)]).reshape(1,
-                                                                                                                   -1)
-    row2 = np.array(
-        [ux * uy * (1 - c(a)) + uz * s(a), uy * uy * (1 - c(a)) + c(a), uy * uz * (1 - c(a)) - ux * s(a)]).reshape(1,
-                                                                                                                   -1)
-    row3 = np.array(
-        [ux * uz * (1 - c(a)) - uy * s(a), uy * uz * (1 - c(a)) + ux * s(a), uz * uz * (1 - c(a)) + c(a)]).reshape(1,
-                                                                                                                   -1)
-    result = np.concatenate([row1, row2, row3], axis=0)
+    row1 = Matrix([ux * ux * (1 - cos(a)) + cos(a),
+                   ux * uy * (1 - cos(a)) - uz * sin(a),
+                   ux * uz * (1 - cos(a)) + uy * sin(a)]).T
 
-    return result
+    row2 = Matrix([ux * uy * (1 - cos(a)) + uz * sin(a),
+                   uy * uy * (1 - cos(a)) + cos(a),
+                   uy * uz * (1 - cos(a)) - ux * sin(a)]).T
+
+    row3 = Matrix([ux * uz * (1 - cos(a)) - uy * sin(a),
+                   uy * uz * (1 - cos(a)) + ux * sin(a),
+                   uz * uz * (1 - cos(a)) + cos(a)]).T
+
+    full_mat = simplify(Matrix([row1, row2, row3]))
+
+    return full_mat
 
 
 def Transformation(rotation, translation):
@@ -107,12 +110,11 @@ def Mapping(transformation, coordinate):
         print('Wrong coordinate matrix')
         return None
 
-    coordinate = np.append(coordinate, [[1]], axis=0)
-
-    result = np.matmul(transformation, coordinate)
+    coordinate = coordinate.row_insert(3, Matrix([1]))
+    result = transformation * coordinate
 
     # need to ignore the last value in the last row
-    return result[:-1]
+    return result
 
 
 def Euler_parameters(alpha, A_U, rad=True):
