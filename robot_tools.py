@@ -57,6 +57,7 @@ def Rotation_non_pincipal_axes(angle, direction, rad=True):
     else:
         a = angle
 
+    # U need to convert to unit vector
     # Convert the direction to unit vector, if the direction is already unit vector, norm = 1
     [ux, uy, uz] = direction
 
